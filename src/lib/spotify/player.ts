@@ -177,6 +177,10 @@ export async function playPreview(previewUrl: string, volume: number = 0.8): Pro
   try {
     element.load()
     await element.play()
+    const started = await waitForPlaybackStart(element)
+    if (!started) {
+      throw new AutoplayBlockedError()
+    }
     keepAliveActive = false
   } catch (error) {
     if (isAutoplayBlockedError(error)) {
@@ -363,15 +367,17 @@ export async function playTrack(
 
     // Try Web Playback SDK for Premium users
     try {
-      if (!deviceId) {
-        await initializeSpotifyPlayer(accessToken)
-      }
-      const trackUri = `spotify:track:${trackId}`
-      await playWithSDK(trackUri, accessToken)
+      if (!isIOSDevice()) {
+        if (!deviceId) {
+          await initializeSpotifyPlayer(accessToken)
+        }
+        const trackUri = `spotify:track:${trackId}`
+        await playWithSDK(trackUri, accessToken)
 
-      return {
-        type: 'full',
-        track,
+        return {
+          type: 'full',
+          track,
+        }
       }
     } catch (error) {
       console.log('SDK playback failed, falling back to preview:', error)
@@ -415,6 +421,38 @@ export async function playTrack(
 
   // No preview available
   throw new Error('This track has no preview available. Please log in for full playback.')
+}
+
+async function waitForPlaybackStart(element: HTMLAudioElement): Promise<boolean> {
+  return new Promise((resolve) => {
+    let done = false
+    const finish = (started: boolean) => {
+      if (done) return
+      done = true
+      cleanup()
+      resolve(started)
+    }
+
+    const onPlaying = () => finish(true)
+    const onTimeUpdate = () => finish(true)
+    const onPause = () => {
+      if (element.paused) finish(false)
+    }
+
+    const cleanup = () => {
+      element.removeEventListener('playing', onPlaying)
+      element.removeEventListener('timeupdate', onTimeUpdate)
+      element.removeEventListener('pause', onPause)
+    }
+
+    element.addEventListener('playing', onPlaying)
+    element.addEventListener('timeupdate', onTimeUpdate)
+    element.addEventListener('pause', onPause)
+
+    setTimeout(() => {
+      finish(!element.paused)
+    }, 300)
+  })
 }
 
 /**
