@@ -12,6 +12,7 @@ export function useSpotifyPlayer() {
     volume,
     error,
     isLoading,
+    autoplayBlocked,
     setCurrentTrack,
     setIsPlaying,
     setPlaybackType,
@@ -19,6 +20,7 @@ export function useSpotifyPlayer() {
     setVolume,
     setError,
     setIsLoading,
+    setAutoplayBlocked,
     clearError,
     reset,
   } = usePlayerStore();
@@ -36,7 +38,8 @@ export function useSpotifyPlayer() {
 
         setCurrentTrack(result.track);
         setPlaybackType(result.type);
-        setIsPlaying(true);
+        setIsPlaying(!result.autoplayBlocked);
+        setAutoplayBlocked(!!result.autoplayBlocked);
         setIsLoading(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to play track");
@@ -99,12 +102,13 @@ export function useSpotifyPlayer() {
     try {
       await player.resume();
       setIsPlaying(true);
+      setAutoplayBlocked(false);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to resume playback",
       );
     }
-  }, [setIsPlaying, setError]);
+  }, [setIsPlaying, setError, setAutoplayBlocked]);
 
   // Stop playback
   const stop = useCallback(() => {
@@ -149,6 +153,7 @@ export function useSpotifyPlayer() {
     volume,
     error,
     isLoading,
+    autoplayBlocked,
     play,
     load,
     pause,

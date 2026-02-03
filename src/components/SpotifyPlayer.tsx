@@ -13,6 +13,7 @@ export function SpotifyPlayer({ onScanAgain }: SpotifyPlayerProps) {
     isPlaying,
     error,
     isLoading,
+    autoplayBlocked,
     pause,
     resume,
   } = useSpotifyPlayer()
@@ -66,6 +67,12 @@ export function SpotifyPlayer({ onScanAgain }: SpotifyPlayerProps) {
           <Play className="h-10 w-10" fill="currentColor" />
         )}
       </Button>
+
+      {autoplayBlocked && !isPlaying && (
+        <p className="text-sm text-muted-foreground text-center max-w-xs">
+          Autoplay is blocked on iOS. Tap Play to start.
+        </p>
+      )}
 
       {/* Scan Next Code Button */}
       <Button

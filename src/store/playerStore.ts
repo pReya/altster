@@ -10,6 +10,7 @@ interface PlayerState {
   volume: number // 0-100
   error: string | null
   isLoading: boolean
+  autoplayBlocked: boolean
 
   // Actions
   setCurrentTrack: (track: SpotifyTrack) => void
@@ -19,6 +20,7 @@ interface PlayerState {
   setVolume: (volume: number) => void
   setError: (error: string | null) => void
   setIsLoading: (loading: boolean) => void
+  setAutoplayBlocked: (blocked: boolean) => void
   clearError: () => void
   reset: () => void
 }
@@ -32,6 +34,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   volume: 80,
   error: null,
   isLoading: false,
+  autoplayBlocked: false,
 
   // Actions
   setCurrentTrack: (track: SpotifyTrack) => {
@@ -68,6 +71,10 @@ export const usePlayerStore = create<PlayerState>((set) => ({
     set({ isLoading: loading })
   },
 
+  setAutoplayBlocked: (blocked: boolean) => {
+    set({ autoplayBlocked: blocked })
+  },
+
   clearError: () => {
     set({ error: null })
   },
@@ -80,6 +87,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
       progress: 0,
       error: null,
       isLoading: false,
+      autoplayBlocked: false,
     })
   },
 }))

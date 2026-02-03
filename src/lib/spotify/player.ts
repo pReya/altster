@@ -5,6 +5,24 @@ import { getTrack } from './api'
 let audioElement: HTMLAudioElement | null = null
 let audioUnlocked = false
 
+class AutoplayBlockedError extends Error {
+  constructor() {
+    super('Autoplay was blocked')
+    this.name = 'AutoplayBlockedError'
+  }
+}
+
+function isAutoplayBlockedError(error: unknown): boolean {
+  if (error instanceof DOMException) {
+    return error.name === 'NotAllowedError'
+  }
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase()
+    return message.includes('notallowed') || message.includes('not allowed') || message.includes('autoplay')
+  }
+  return false
+}
+
 function ensureAudioElement(): HTMLAudioElement {
   if (!audioElement) {
     audioElement = new Audio()
@@ -146,6 +164,9 @@ export async function playPreview(previewUrl: string, volume: number = 0.8): Pro
   try {
     await element.play()
   } catch (error) {
+    if (isAutoplayBlockedError(error)) {
+      throw new AutoplayBlockedError()
+    }
     console.error('Failed to play preview:', error)
     throw new Error('Failed to play audio preview')
   }
@@ -280,6 +301,7 @@ export async function playTrack(
 ): Promise<{
   type: PlaybackType
   track: SpotifyTrack
+  autoplayBlocked?: boolean
 }> {
   // First, fetch track details
   let track: SpotifyTrack
@@ -326,10 +348,21 @@ export async function playTrack(
 
   // Try preview playback
   if (track.preview_url) {
-    await playPreview(track.preview_url, volume)
-    return {
-      type: 'preview',
-      track,
+    try {
+      await playPreview(track.preview_url, volume)
+      return {
+        type: 'preview',
+        track,
+      }
+    } catch (error) {
+      if (error instanceof AutoplayBlockedError) {
+        return {
+          type: 'preview',
+          track,
+          autoplayBlocked: true,
+        }
+      }
+      throw error
     }
   }
 
