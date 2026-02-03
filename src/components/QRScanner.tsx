@@ -3,6 +3,7 @@ import { Camera, ScanLine } from 'lucide-react'
 import { Button } from './ui/button'
 import { useQRScanner } from '@/hooks/useQRScanner'
 import { useScanStore } from '@/store/scanStore'
+import { unlockAudio } from '@/lib/spotify/player'
 
 interface QRScannerProps {
   onScanSuccess: (trackId: string) => void
@@ -15,6 +16,9 @@ export function QRScanner({ onScanSuccess }: QRScannerProps) {
   const { isScanning, isCameraReady, error } = useScanStore()
 
   useEffect(() => {
+    // Unlock audio on mount (user navigated here via button click)
+    unlockAudio()
+
     // Start scanner on mount
     start(SCANNER_ELEMENT_ID)
 

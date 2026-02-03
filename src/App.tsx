@@ -12,7 +12,7 @@ type View = 'scanner' | 'player'
 function App() {
   const [currentView, setCurrentView] = useState<View>('player')
   const { handleCallback, error: authError, clearError: clearAuthError } = useSpotifyAuth()
-  const { load, error: playerError, clearError: clearPlayerError } = useSpotifyPlayer()
+  const { play, error: playerError, clearError: clearPlayerError } = useSpotifyPlayer()
   const { error: scanError, clearError: clearScanError } = useScanStore()
   const callbackProcessed = useRef(false)
 
@@ -37,10 +37,10 @@ function App() {
   // Handle successful QR scan
   const handleScanSuccess = async (trackId: string) => {
     try {
-      await load(trackId)
+      await play(trackId)
       setCurrentView('player')
     } catch (error) {
-      console.error('Failed to load track:', error)
+      console.error('Failed to play track:', error)
     }
   }
 

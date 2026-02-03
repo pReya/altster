@@ -3,6 +3,7 @@ import { getTrack } from './api'
 
 // Global audio element for preview playback
 let audioElement: HTMLAudioElement | null = null
+let audioUnlocked = false
 
 // Spotify Web Playback SDK types
 declare global {
@@ -150,6 +151,27 @@ export function preparePreview(previewUrl: string, volume: number = 0.8): void {
   // Create new audio element but don't play
   audioElement = new Audio(previewUrl)
   audioElement.volume = volume / 100
+}
+
+/**
+ * Unlock audio playback by playing silent audio during a user gesture.
+ * Call this when user clicks "Start Scanning" to enable later autoplay.
+ */
+export async function unlockAudio(): Promise<void> {
+  if (audioUnlocked) return
+
+  try {
+    // Create a silent audio context and play it
+    const silentAudio = new Audio(
+      'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA'
+    )
+    silentAudio.volume = 0
+    await silentAudio.play()
+    silentAudio.pause()
+    audioUnlocked = true
+  } catch {
+    // Ignore errors - audio may still work
+  }
 }
 
 /**

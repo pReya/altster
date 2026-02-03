@@ -11,11 +11,11 @@ export function ErrorDisplay({ error, onDismiss }: ErrorDisplayProps) {
   if (!error) return null
 
   return (
-    <Card className="fixed top-4 left-4 right-4 z-50 border-destructive bg-destructive/10">
+    <Card className="fixed top-4 left-4 right-4 z-50 border-destructive bg-destructive/50 text-destructive-foreground">
       <CardContent className="flex items-start gap-3 p-4">
-        <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+        <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
         <div className="flex-1">
-          <p className="text-sm font-medium text-destructive">{error}</p>
+          <p className="text-sm font-medium">{error}</p>
         </div>
         {onDismiss && (
           <Button
