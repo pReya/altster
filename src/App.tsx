@@ -6,7 +6,7 @@ import { ErrorDisplay } from './components/ErrorDisplay'
 import { useSpotifyAuth } from './hooks/useSpotifyAuth'
 import { useSpotifyPlayer } from './hooks/useSpotifyPlayer'
 import { useScanStore } from './store/scanStore'
-import { unlockAudio } from './lib/spotify/player'
+import { startAutoplayKeepAlive } from './lib/spotify/player'
 
 type View = 'scanner' | 'player'
 
@@ -37,9 +37,9 @@ function App() {
 
   // Handle successful QR scan
   const handleScanSuccess = async (trackId: string) => {
+    setCurrentView('player')
     try {
       await play(trackId)
-      setCurrentView('player')
     } catch (error) {
       console.error('Failed to play track:', error)
     }
@@ -48,7 +48,7 @@ function App() {
   // Switch to scanner view
   const showScanner = () => {
     // Unlock audio during the click event (must be synchronous with user gesture)
-    unlockAudio()
+    startAutoplayKeepAlive()
     setCurrentView('scanner')
   }
 

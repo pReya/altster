@@ -4,6 +4,9 @@ import { getTrack } from './api'
 // Global audio element for preview playback (reused to preserve user activation)
 let audioElement: HTMLAudioElement | null = null
 let audioUnlocked = false
+let keepAliveActive = false
+const SILENT_AUDIO_SRC =
+  'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA'
 
 class AutoplayBlockedError extends Error {
   constructor() {
@@ -29,6 +32,14 @@ function ensureAudioElement(): HTMLAudioElement {
     audioElement.preload = 'auto'
   }
   return audioElement
+}
+
+export function isIOSDevice(): boolean {
+  if (typeof navigator === 'undefined') return false
+  const ua = navigator.userAgent || ''
+  const isIOS = /iPad|iPhone|iPod/.test(ua)
+  const isIPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
+  return isIOS || isIPadOS
 }
 
 // Spotify Web Playback SDK types
@@ -157,12 +168,16 @@ export async function playPreview(previewUrl: string, volume: number = 0.8): Pro
 
   // Reuse the shared audio element to preserve user activation
   const element = ensureAudioElement()
+  element.loop = false
+  element.muted = false
   element.src = previewUrl
   element.currentTime = 0
   element.volume = volume / 100
 
   try {
+    element.load()
     await element.play()
+    keepAliveActive = false
   } catch (error) {
     if (isAutoplayBlockedError(error)) {
       throw new AutoplayBlockedError()
@@ -197,8 +212,7 @@ export async function unlockAudio(): Promise<void> {
   try {
     // Use the shared audio element so the user activation persists
     const element = ensureAudioElement()
-    element.src =
-      'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA'
+    element.src = SILENT_AUDIO_SRC
     element.volume = 0
     await element.play()
     element.pause()
@@ -206,6 +220,39 @@ export async function unlockAudio(): Promise<void> {
     audioUnlocked = true
   } catch {
     // Ignore errors - audio may still work
+  }
+}
+
+/**
+ * iOS Safari requires a user gesture for each playback.
+ * We keep a silent loop running to preserve the activation.
+ */
+export async function startAutoplayKeepAlive(): Promise<void> {
+  if (!isIOSDevice()) return
+  if (keepAliveActive) return
+
+  try {
+    const element = ensureAudioElement()
+    element.src = SILENT_AUDIO_SRC
+    element.loop = true
+    element.muted = true
+    element.volume = 0
+    await element.play()
+    keepAliveActive = true
+    audioUnlocked = true
+  } catch {
+    // Ignore errors - fallback to tap to play
+  }
+}
+
+export function stopAutoplayKeepAlive(): void {
+  if (!keepAliveActive) return
+  keepAliveActive = false
+  if (audioElement) {
+    audioElement.loop = false
+    audioElement.muted = false
+    audioElement.pause()
+    audioElement.currentTime = 0
   }
 }
 
