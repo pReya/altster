@@ -124,17 +124,20 @@ export async function playWithSDK(
 /**
  * Play track preview using HTML5 Audio
  */
-export function playPreview(previewUrl: string, volume: number = 0.8): void {
+export async function playPreview(previewUrl: string, volume: number = 0.8): Promise<void> {
   // Stop any existing playback
   stopPreview()
 
   // Create new audio element
   audioElement = new Audio(previewUrl)
   audioElement.volume = volume / 100
-  audioElement.play().catch((error) => {
+
+  try {
+    await audioElement.play()
+  } catch (error) {
     console.error('Failed to play preview:', error)
     throw new Error('Failed to play audio preview')
-  })
+  }
 }
 
 /**
@@ -276,7 +279,7 @@ export async function playTrack(
 
   // Try preview playback
   if (track.preview_url) {
-    playPreview(track.preview_url, volume)
+    await playPreview(track.preview_url, volume)
     return {
       type: 'preview',
       track,

@@ -1,7 +1,7 @@
-import { useCallback, useEffect } from 'react'
-import { usePlayerStore } from '@/store/playerStore'
-import { useAuthStore } from '@/store/authStore'
-import * as player from '@/lib/spotify/player'
+import { useCallback, useEffect } from "react";
+import { usePlayerStore } from "@/store/playerStore";
+import { useAuthStore } from "@/store/authStore";
+import * as player from "@/lib/spotify/player";
 
 export function useSpotifyPlayer() {
   const {
@@ -21,85 +21,96 @@ export function useSpotifyPlayer() {
     setIsLoading,
     clearError,
     reset,
-  } = usePlayerStore()
+  } = usePlayerStore();
 
-  const { accessToken } = useAuthStore()
+  const { accessToken } = useAuthStore();
 
   // Play a track by ID
   const play = useCallback(
     async (trackId: string) => {
       try {
-        setIsLoading(true)
-        clearError()
+        setIsLoading(true);
+        clearError();
 
-        const result = await player.playTrack(trackId, accessToken, volume)
+        const result = await player.playTrack(trackId, accessToken);
 
-        setCurrentTrack(result.track)
-        setPlaybackType(result.type)
-        setIsPlaying(true)
-        setIsLoading(false)
+        setCurrentTrack(result.track);
+        setPlaybackType(result.type);
+        setIsPlaying(true);
+        setIsLoading(false);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to play track')
-        setIsLoading(false)
+        setError(err instanceof Error ? err.message : "Failed to play track");
+        setIsLoading(false);
       }
     },
-    [accessToken, volume, setCurrentTrack, setPlaybackType, setIsPlaying, setError, setIsLoading, clearError]
-  )
+    [
+      accessToken,
+      volume,
+      setCurrentTrack,
+      setPlaybackType,
+      setIsPlaying,
+      setError,
+      setIsLoading,
+      clearError,
+    ],
+  );
 
   // Pause playback
   const pause = useCallback(async () => {
     try {
-      await player.pause()
-      setIsPlaying(false)
+      await player.pause();
+      setIsPlaying(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to pause playback')
+      setError(err instanceof Error ? err.message : "Failed to pause playback");
     }
-  }, [setIsPlaying, setError])
+  }, [setIsPlaying, setError]);
 
   // Resume playback
   const resume = useCallback(async () => {
     try {
-      await player.resume()
-      setIsPlaying(true)
+      await player.resume();
+      setIsPlaying(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to resume playback')
+      setError(
+        err instanceof Error ? err.message : "Failed to resume playback",
+      );
     }
-  }, [setIsPlaying, setError])
+  }, [setIsPlaying, setError]);
 
   // Stop playback
   const stop = useCallback(() => {
-    player.stopPlayback()
-    reset()
-  }, [reset])
+    player.stopPlayback();
+    reset();
+  }, [reset]);
 
   // Change volume
   const changeVolume = useCallback(
     (newVolume: number) => {
-      setVolume(newVolume)
-      player.setPreviewVolume(newVolume)
+      setVolume(newVolume);
+      player.setPreviewVolume(newVolume);
     },
-    [setVolume]
-  )
+    [setVolume],
+  );
 
   // Update progress for preview playback
   useEffect(() => {
-    if (playbackType === 'preview' && isPlaying) {
+    if (playbackType === "preview" && isPlaying) {
       const unsubscribe = player.onPreviewProgress((current) => {
-        setProgress(current)
-      })
+        setProgress(current);
+      });
 
       return () => {
-        unsubscribe()
-      }
+        unsubscribe();
+      };
     }
-  }, [playbackType, isPlaying, setProgress])
+  }, [playbackType, isPlaying, setProgress]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      player.disconnectPlayer()
-    }
-  }, [])
+      player.disconnectPlayer();
+    };
+  }, []);
 
   return {
     currentTrack,
@@ -115,5 +126,5 @@ export function useSpotifyPlayer() {
     stop,
     changeVolume,
     clearError,
-  }
+  };
 }
