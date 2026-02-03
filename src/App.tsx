@@ -6,6 +6,7 @@ import { ErrorDisplay } from './components/ErrorDisplay'
 import { useSpotifyAuth } from './hooks/useSpotifyAuth'
 import { useSpotifyPlayer } from './hooks/useSpotifyPlayer'
 import { useScanStore } from './store/scanStore'
+import { unlockAudio } from './lib/spotify/player'
 
 type View = 'scanner' | 'player'
 
@@ -46,6 +47,8 @@ function App() {
 
   // Switch to scanner view
   const showScanner = () => {
+    // Unlock audio during the click event (must be synchronous with user gesture)
+    unlockAudio()
     setCurrentView('scanner')
   }
 
@@ -58,10 +61,10 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="h-screen overflow-hidden bg-background text-foreground">
       <Header />
 
-      <main className="pt-16">
+      <main className="h-[calc(100vh-4rem)] mt-16 overflow-hidden">
         {currentView === 'scanner' ? (
           <QRScanner onScanSuccess={handleScanSuccess} />
         ) : (

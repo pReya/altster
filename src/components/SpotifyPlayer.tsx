@@ -35,7 +35,7 @@ export function SpotifyPlayer({ onScanAgain }: SpotifyPlayerProps) {
   // If no track is loaded, show the scanner prompt
   if (!currentTrack && !isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-4">
+      <div className="flex flex-col items-center justify-center h-full p-4">
         <div className="text-center max-w-md">
           <ScanLine className="h-20 w-20 text-spotify-green mx-auto mb-6" />
           <h2 className="text-3xl font-bold mb-4">Ready to Play</h2>
@@ -51,7 +51,7 @@ export function SpotifyPlayer({ onScanAgain }: SpotifyPlayerProps) {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-4 gap-6">
+    <div className="flex flex-col items-center justify-center h-full p-4 gap-6">
       {/* Play/Pause Button */}
       <Button
         variant="spotify"
