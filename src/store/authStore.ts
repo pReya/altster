@@ -133,7 +133,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { refreshToken: currentRefreshToken } = get()
 
     if (!currentRefreshToken) {
-      set({ error: 'No refresh token available' })
+      set({ error: 'No refresh token available', isLoading: false })
       return
     }
 
@@ -147,13 +147,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         expiresAt,
       })
 
+      // Fetch user profile after refresh
+      const user = await getUserProfile(tokenResponse.access_token)
+
       set({
         accessToken: tokenResponse.access_token,
         expiresAt,
+        user,
+        isAuthenticated: true,
+        isLoading: false,
       })
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to refresh token',
+        isLoading: false,
       })
       // If refresh fails, log out
       get().logout()
