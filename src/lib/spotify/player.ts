@@ -1,9 +1,17 @@
 import { SpotifyTrack, PlaybackType } from './types'
 import { getTrack } from './api'
 
-// Global audio element for preview playback
+// Global audio element for preview playback (reused to preserve user activation)
 let audioElement: HTMLAudioElement | null = null
 let audioUnlocked = false
+
+function ensureAudioElement(): HTMLAudioElement {
+  if (!audioElement) {
+    audioElement = new Audio()
+    audioElement.preload = 'auto'
+  }
+  return audioElement
+}
 
 // Spotify Web Playback SDK types
 declare global {
@@ -129,12 +137,14 @@ export async function playPreview(previewUrl: string, volume: number = 0.8): Pro
   // Stop any existing playback
   stopPreview()
 
-  // Create new audio element
-  audioElement = new Audio(previewUrl)
-  audioElement.volume = volume / 100
+  // Reuse the shared audio element to preserve user activation
+  const element = ensureAudioElement()
+  element.src = previewUrl
+  element.currentTime = 0
+  element.volume = volume / 100
 
   try {
-    await audioElement.play()
+    await element.play()
   } catch (error) {
     console.error('Failed to play preview:', error)
     throw new Error('Failed to play audio preview')
@@ -148,9 +158,12 @@ export function preparePreview(previewUrl: string, volume: number = 0.8): void {
   // Stop any existing playback
   stopPreview()
 
-  // Create new audio element but don't play
-  audioElement = new Audio(previewUrl)
-  audioElement.volume = volume / 100
+  // Reuse the shared audio element but don't play
+  const element = ensureAudioElement()
+  element.src = previewUrl
+  element.currentTime = 0
+  element.volume = volume / 100
+  element.load()
 }
 
 /**
@@ -161,13 +174,14 @@ export async function unlockAudio(): Promise<void> {
   if (audioUnlocked) return
 
   try {
-    // Create a silent audio context and play it
-    const silentAudio = new Audio(
+    // Use the shared audio element so the user activation persists
+    const element = ensureAudioElement()
+    element.src =
       'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA'
-    )
-    silentAudio.volume = 0
-    await silentAudio.play()
-    silentAudio.pause()
+    element.volume = 0
+    await element.play()
+    element.pause()
+    element.currentTime = 0
     audioUnlocked = true
   } catch {
     // Ignore errors - audio may still work
@@ -181,7 +195,6 @@ export function stopPreview(): void {
   if (audioElement) {
     audioElement.pause()
     audioElement.currentTime = 0
-    audioElement = null
   }
 }
 
