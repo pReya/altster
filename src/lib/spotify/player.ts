@@ -141,6 +141,18 @@ export async function playPreview(previewUrl: string, volume: number = 0.8): Pro
 }
 
 /**
+ * Prepare track preview without playing (for autoplay policy compliance)
+ */
+export function preparePreview(previewUrl: string, volume: number = 0.8): void {
+  // Stop any existing playback
+  stopPreview()
+
+  // Create new audio element but don't play
+  audioElement = new Audio(previewUrl)
+  audioElement.volume = volume / 100
+}
+
+/**
  * Stop preview playback
  */
 export function stopPreview(): void {
@@ -280,6 +292,40 @@ export async function playTrack(
   // Try preview playback
   if (track.preview_url) {
     await playPreview(track.preview_url, volume)
+    return {
+      type: 'preview',
+      track,
+    }
+  }
+
+  // No preview available
+  throw new Error('This track has no preview available. Please log in for full playback.')
+}
+
+/**
+ * Load a track without auto-playing (for autoplay policy compliance)
+ * Prepares everything so resume() can start playback on user gesture
+ */
+export async function loadTrack(
+  trackId: string,
+  accessToken: string | null,
+  volume: number = 80
+): Promise<{
+  type: PlaybackType
+  track: SpotifyTrack
+}> {
+  if (!accessToken) {
+    throw new Error(
+      'Please log in with Spotify to play tracks.'
+    )
+  }
+
+  // Fetch track details
+  const track = await getTrack(trackId, accessToken)
+
+  // For preview playback, prepare the audio element without playing
+  if (track.preview_url) {
+    preparePreview(track.preview_url, volume)
     return {
       type: 'preview',
       track,

@@ -4,7 +4,13 @@ import { useScanStore } from '@/store/scanStore'
 import { parseSpotifyUrl } from '@/lib/qr/parser'
 
 const SCANNER_FPS = 10
-const SCANNER_QRBOX = { width: 250, height: 250 }
+
+// Calculate square qrbox based on viewfinder dimensions
+const getQrBoxSize = (viewfinderWidth: number, viewfinderHeight: number) => {
+  const minDimension = Math.min(viewfinderWidth, viewfinderHeight)
+  const boxSize = Math.floor(minDimension * 0.7)
+  return { width: boxSize, height: boxSize }
+}
 
 export function useQRScanner(onScanSuccess?: (trackId: string) => void) {
   const scannerRef = useRef<Html5Qrcode | null>(null)
@@ -96,8 +102,7 @@ export function useQRScanner(onScanSuccess?: (trackId: string) => void) {
           { facingMode: 'environment' }, // Use back camera on mobile
           {
             fps: SCANNER_FPS,
-            qrbox: SCANNER_QRBOX,
-            aspectRatio: 1.0,
+            qrbox: getQrBoxSize,
           },
           handleScanSuccess,
           handleScanError

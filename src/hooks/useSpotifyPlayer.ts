@@ -55,6 +55,35 @@ export function useSpotifyPlayer() {
     ],
   );
 
+  // Load a track without auto-playing (for autoplay policy compliance)
+  const load = useCallback(
+    async (trackId: string) => {
+      try {
+        setIsLoading(true);
+        clearError();
+
+        const result = await player.loadTrack(trackId, accessToken);
+
+        setCurrentTrack(result.track);
+        setPlaybackType(result.type);
+        setIsPlaying(false);
+        setIsLoading(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load track");
+        setIsLoading(false);
+      }
+    },
+    [
+      accessToken,
+      setCurrentTrack,
+      setPlaybackType,
+      setIsPlaying,
+      setError,
+      setIsLoading,
+      clearError,
+    ],
+  );
+
   // Pause playback
   const pause = useCallback(async () => {
     try {
@@ -121,6 +150,7 @@ export function useSpotifyPlayer() {
     error,
     isLoading,
     play,
+    load,
     pause,
     resume,
     stop,
