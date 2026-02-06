@@ -2,7 +2,7 @@
 
 const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID
 const REDIRECT_URI = import.meta.env.VITE_SPOTIFY_REDIRECT_URI
-const SCOPES = ['streaming', 'user-read-email', 'user-read-private']
+const SCOPES = ['streaming', 'user-read-email', 'user-read-private', 'user-modify-playback-state', 'user-read-playback-state']
 
 // Generate a random string for code verifier
 function generateRandomString(length: number): string {
