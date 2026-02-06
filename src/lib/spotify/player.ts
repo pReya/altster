@@ -163,8 +163,12 @@ export async function playWithSDK(
  * Play track preview using HTML5 Audio
  */
 export async function playPreview(previewUrl: string, volume: number = 0.8): Promise<void> {
-  // Stop any existing playback
-  stopPreview()
+  // Only stop if keep-alive is NOT active.
+  // When keep-alive is active, we transition directly to preserve user activation
+  // so the browser still considers the audio element as user-gesture-activated.
+  if (!keepAliveActive) {
+    stopPreview()
+  }
 
   // Reuse the shared audio element to preserve user activation
   const element = ensureAudioElement()
@@ -232,7 +236,6 @@ export async function unlockAudio(): Promise<void> {
  * We keep a silent loop running to preserve the activation.
  */
 export async function startAutoplayKeepAlive(): Promise<void> {
-  if (!isIOSDevice()) return
   if (keepAliveActive) return
 
   try {
@@ -246,6 +249,16 @@ export async function startAutoplayKeepAlive(): Promise<void> {
     audioUnlocked = true
   } catch {
     // Ignore errors - fallback to tap to play
+  }
+}
+
+/**
+ * Activate the Spotify SDK audio element during a user gesture.
+ * Must be called before SDK playback can produce audio.
+ */
+export function activateSDKElement(): void {
+  if (spotifyPlayer && typeof spotifyPlayer.activateElement === 'function') {
+    spotifyPlayer.activateElement()
   }
 }
 

@@ -6,7 +6,7 @@ import { ErrorDisplay } from './components/ErrorDisplay'
 import { useSpotifyAuth } from './hooks/useSpotifyAuth'
 import { useSpotifyPlayer } from './hooks/useSpotifyPlayer'
 import { useScanStore } from './store/scanStore'
-import { startAutoplayKeepAlive } from './lib/spotify/player'
+import { startAutoplayKeepAlive, activateSDKElement } from './lib/spotify/player'
 
 type View = 'scanner' | 'player'
 
@@ -49,6 +49,7 @@ function App() {
   const showScanner = () => {
     // Unlock audio during the click event (must be synchronous with user gesture)
     startAutoplayKeepAlive()
+    activateSDKElement()
     setCurrentView('scanner')
   }
 
