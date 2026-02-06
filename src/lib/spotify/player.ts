@@ -412,6 +412,7 @@ export async function playTrack(
   }
 
   const trackUri = `spotify:track:${trackId}`
+  const errors: string[] = []
 
   // Strategy 1: Web Playback SDK (non-iOS only, requires Premium)
   if (!isIOSDevice()) {
@@ -422,8 +423,12 @@ export async function playTrack(
       await playWithSDK(trackUri, accessToken)
       return { type: 'full', track }
     } catch (error) {
-      console.log('SDK playback failed, trying fallbacks:', error)
+      const msg = error instanceof Error ? error.message : String(error)
+      errors.push(`SDK: ${msg}`)
+      console.log('SDK playback failed, trying fallbacks:', msg)
     }
+  } else {
+    errors.push('SDK: skipped (iOS)')
   }
 
   // Strategy 2: Preview playback (30s clip via HTML5 audio)
@@ -435,8 +440,12 @@ export async function playTrack(
       if (error instanceof AutoplayBlockedError) {
         return { type: 'preview', track, autoplayBlocked: true }
       }
-      console.log('Preview playback failed, trying Connect API:', error)
+      const msg = error instanceof Error ? error.message : String(error)
+      errors.push(`Preview: ${msg}`)
+      console.log('Preview playback failed, trying Connect API:', msg)
     }
+  } else {
+    errors.push('Preview: no preview_url available')
   }
 
   // Strategy 3: Spotify Connect API (plays on user's active Spotify app/device)
@@ -444,11 +453,13 @@ export async function playTrack(
     await playWithConnectAPI(trackUri, accessToken)
     return { type: 'full', track }
   } catch (error) {
-    console.log('Connect API failed:', error)
+    const msg = error instanceof Error ? error.message : String(error)
+    errors.push(`Connect: ${msg}`)
+    console.log('Connect API failed:', msg)
   }
 
   throw new Error(
-    'Could not play track. Please open Spotify on a device and try again.'
+    `Could not play track. ${errors.join(' | ')}`
   )
 }
 
