@@ -354,9 +354,39 @@ export function onPreviewProgress(callback: (progress: number, duration: number)
 }
 
 /**
- * Hybrid playback strategy
- * Tries full playback with SDK if authenticated and Premium,
- * falls back to preview playback
+ * Play a track on the user's active Spotify device via the Connect API.
+ * This works without the Web Playback SDK — it plays on whatever device
+ * the user has Spotify open on (phone app, desktop app, etc.).
+ */
+async function playWithConnectAPI(
+  trackUri: string,
+  accessToken: string
+): Promise<void> {
+  const response = await fetch(
+    'https://api.spotify.com/v1/me/player/play',
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        uris: [trackUri],
+      }),
+    }
+  )
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.error?.message || 'No active Spotify device found')
+  }
+}
+
+/**
+ * Hybrid playback strategy — tries multiple approaches in order:
+ * 1. Web Playback SDK (in-browser, non-iOS, requires Premium)
+ * 2. Preview playback (HTML5 audio, 30s clip, works everywhere)
+ * 3. Spotify Connect API (plays on user's active Spotify app/device)
  */
 export async function playTrack(
   trackId: string,
@@ -367,73 +397,59 @@ export async function playTrack(
   track: SpotifyTrack
   autoplayBlocked?: boolean
 }> {
-  // First, fetch track details
-  let track: SpotifyTrack
-
-  if (accessToken) {
-    try {
-      track = await getTrack(trackId, accessToken)
-    } catch (error) {
-      // If authenticated fetch fails, we can't proceed
-      throw new Error('Failed to fetch track details')
-    }
-
-    // Try Web Playback SDK for Premium users
-    try {
-      if (!isIOSDevice()) {
-        if (!deviceId) {
-          await initializeSpotifyPlayer(accessToken)
-        }
-        const trackUri = `spotify:track:${trackId}`
-        await playWithSDK(trackUri, accessToken)
-
-        return {
-          type: 'full',
-          track,
-        }
-      }
-    } catch (error) {
-      console.log('SDK playback failed, falling back to preview:', error)
-      // Fall through to preview playback
-    }
-  }
-
-  // For non-authenticated users or if SDK fails, we need track data
-  // In a real implementation, you'd use client credentials flow
-  // For now, we'll require authentication to get track data
   if (!accessToken) {
     throw new Error(
-      'Please log in with Spotify to play tracks. Preview playback requires authentication to fetch track data.'
+      'Please log in with Spotify to play tracks.'
     )
   }
 
-  // Fetch track if we don't have it yet
-  if (!track!) {
+  // Fetch track details
+  let track: SpotifyTrack
+  try {
     track = await getTrack(trackId, accessToken)
+  } catch (error) {
+    throw new Error('Failed to fetch track details')
   }
 
-  // Try preview playback
-  if (track.preview_url) {
+  const trackUri = `spotify:track:${trackId}`
+
+  // Strategy 1: Web Playback SDK (non-iOS only, requires Premium)
+  if (!isIOSDevice()) {
     try {
-      await playPreview(track.preview_url, volume)
-      return {
-        type: 'preview',
-        track,
+      if (!deviceId) {
+        await initializeSpotifyPlayer(accessToken)
       }
+      await playWithSDK(trackUri, accessToken)
+      return { type: 'full', track }
     } catch (error) {
-      if (error instanceof AutoplayBlockedError) {
-        return {
-          type: 'preview',
-          track,
-          autoplayBlocked: true,
-        }
-      }
-      throw error
+      console.log('SDK playback failed, trying fallbacks:', error)
     }
   }
 
-  // No preview available
-  throw new Error('This track has no preview available. Please log in for full playback.')
+  // Strategy 2: Preview playback (30s clip via HTML5 audio)
+  if (track.preview_url) {
+    try {
+      await playPreview(track.preview_url, volume)
+      return { type: 'preview', track }
+    } catch (error) {
+      if (error instanceof AutoplayBlockedError) {
+        return { type: 'preview', track, autoplayBlocked: true }
+      }
+      console.log('Preview playback failed, trying Connect API:', error)
+    }
+  }
+
+  // Strategy 3: Spotify Connect API (plays on user's active Spotify app/device)
+  try {
+    await playWithConnectAPI(trackUri, accessToken)
+    return { type: 'full', track }
+  } catch (error) {
+    console.log('Connect API failed:', error)
+  }
+
+  throw new Error(
+    'Could not play track. Please open Spotify on a device and try again.'
+  )
 }
 
 async function waitForPlaybackStart(element: HTMLAudioElement): Promise<boolean> {
